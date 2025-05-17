@@ -1,0 +1,52 @@
+name: ECR
+on:
+  push:
+    branches:
+      - main
+env:
+  AWS_REGION: ap-northeast-1
+  ECS_CLUSTER: watanabe-cluster
+  ECS_SERVICE: watanabe-services
+  ECR_APP: watanabe-app
+  ECR_WEB: watanabe-web
+
+permissions:
+  id-token: write 
+  contents: read
+
+jobs:
+  # TEST
+  # 
+  # BUILD
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app image
+        run: docker image build -t temp_app_image:latest -f docker/common/php-fpm/Dockerfile .
+
+      - name: Build web image
+        run: docker image build -t temp_web_image:latest -f docker/production/nginx/Dockerfile .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push images to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker image tag temp_app_image:latest $ECR_REGISTRY/$ECR_APP:${{ github.sha }}
+          docker image tag temp_web_image:latest $ECR_REGISTRY/$ECR_WEB:${{ github.sha }}
+          docker image push $ECR_REGISTRY/$ECR_APP:${{ github.sha }}
+          docker image push $ECR_REGISTRY/$ECR_WEB:${{ github.sha }}

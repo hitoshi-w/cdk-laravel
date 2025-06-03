@@ -220,6 +220,10 @@ export class CdkStack extends Stack {
         streamPrefix: "app",
         logGroup: logGroup,
       }),
+      environment: {
+        APP_KEY: this.config.appKey,
+        APP_ENV: this.config.appEnv,
+      }
     });
 
     // Fargate Service

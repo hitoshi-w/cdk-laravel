@@ -1,13 +1,15 @@
 export interface IConfig {
   appKey: string;
+  appEnv: string;
   ACMCertificateArn: string;
 }
 
 export function getConfig(): IConfig {
-  switch (process.env.NODE_ENV) {
-    case 'dev':
+  switch (process.env.APP_ENV) {
+    case 'production':
       return {
         appKey: process.env.APP_KEY!,
+        appEnv: process.env.APP_ENV!,
         ACMCertificateArn: process.env.ACM_CERTIFICATE_ARN!,
       }
     default:

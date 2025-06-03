@@ -46,7 +46,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker image tag temp_app_image:latest $ECR_REGISTRY/$ECR_APP:${{ github.sha }}
-          docker image tag temp_web_image:latest $ECR_REGISTRY/$ECR_WEB:${{ github.sha }}
-          docker image push $ECR_REGISTRY/$ECR_APP:${{ github.sha }}
-          docker image push $ECR_REGISTRY/$ECR_WEB:${{ github.sha }}
+          docker image tag temp_app_image:latest $ECR_REGISTRY/$ECR_APP:latest
+          docker image tag temp_web_image:latest $ECR_REGISTRY/$ECR_WEB:latest
+          docker image push $ECR_REGISTRY/$ECR_APP:latest
+          docker image push $ECR_REGISTRY/$ECR_WEB:latest

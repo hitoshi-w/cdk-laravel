@@ -108,26 +108,26 @@ export class CdkStack extends Stack {
     fargateSg.addIngressRule(albSg, Port.tcp(80));
 
     // Security Group for DB
-    const dbSg = new SecurityGroup(this, "WatanabeDbSg", {
-      vpc: vpc,
-      securityGroupName: "WatanabeDbSg",
-    });
-    dbSg.addIngressRule(fargateSg, Port.tcp(5432));
+    // const dbSg = new SecurityGroup(this, "WatanabeDbSg", {
+    //   vpc: vpc,
+    //   securityGroupName: "WatanabeDbSg",
+    // });
+    // dbSg.addIngressRule(fargateSg, Port.tcp(5432));
 
-    // DB
-    const dbCredentials = Credentials.fromGeneratedSecret("postgres");
-    const db = new DatabaseInstance(this, "WatanabeDb", {
-      vpc,
-      vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
-      engine: DatabaseInstanceEngine.postgres({ version: PostgresEngineVersion.VER_17 }),
-      multiAz: false,
-      securityGroups: [dbSg],
-      credentials: dbCredentials,
-      publiclyAccessible: false,
-      removalPolicy: RemovalPolicy.DESTROY,
-      deletionProtection: false,
-      databaseName: "watanabe-db",
-    });
+    // // DB
+    // const dbCredentials = Credentials.fromGeneratedSecret("postgres");
+    // const db = new DatabaseInstance(this, "WatanabeDb", {
+    //   vpc,
+    //   vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
+    //   engine: DatabaseInstanceEngine.postgres({ version: PostgresEngineVersion.VER_17 }),
+    //   multiAz: false,
+    //   securityGroups: [dbSg],
+    //   credentials: dbCredentials,
+    //   publiclyAccessible: false,
+    //   removalPolicy: RemovalPolicy.DESTROY,
+    //   deletionProtection: false,
+    //   databaseName: "watanabe-db",
+    // });
 
     // ALB
     const alb = new ApplicationLoadBalancer(this, "WatanabeAlb", {

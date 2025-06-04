@@ -203,6 +203,7 @@ export class CdkStack extends Stack {
     taskDefinition.addContainer("watanabeApp", {
       image: appImage,
       containerName: "php-fpm",
+      portMappings: [{ containerPort: 9000 }],
       logging: LogDrivers.awsLogs({
         streamPrefix: "php-fpm",
         logGroup: logGroup,

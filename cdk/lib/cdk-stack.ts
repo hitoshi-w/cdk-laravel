@@ -1,4 +1,4 @@
-import { Stack, StackProps, RemovalPolicy, Duration } from "aws-cdk-lib";
+import { Stack, StackProps, RemovalPolicy, Duration, SecretValue } from "aws-cdk-lib";
 import dotenv from "dotenv";
 import {
   Vpc,
@@ -9,9 +9,6 @@ import {
   SecurityGroup,
   Peer,
   Port,
-  InstanceType,
-  InstanceClass,
-  InstanceSize,
 } from "aws-cdk-lib/aws-ec2";
 import {
   Cluster,
@@ -20,8 +17,6 @@ import {
   FargateService,
   FargateTaskDefinition,
   LogDrivers,
-  Protocol,
-  TaskDefinitionRevision,
 } from "aws-cdk-lib/aws-ecs";
 import {
   ApplicationLoadBalancer,
@@ -29,29 +24,19 @@ import {
   ApplicationTargetGroup,
   TargetType,
 } from "aws-cdk-lib/aws-elasticloadbalancingv2";
-import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
-import { getConfig, IConfig } from "../config";
+import { getConfig } from "../config";
 import { Repository } from "aws-cdk-lib/aws-ecr";
-import { ApplicationLoadBalancedFargateService } from "aws-cdk-lib/aws-ecs-patterns";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Credentials, DatabaseInstance, DatabaseInstanceEngine, PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
 
 dotenv.config();
 
 export class CdkStack extends Stack {
-  public readonly config: IConfig;
-
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    this.config = getConfig();
-
-    // Paramter Store
-    new StringParameter(this, "AppKeyParameter", {
-      parameterName: "/watanabe/app/key",
-      stringValue: "WatanabeParameterValue",
-    });
+    const config = getConfig();
 
     // Vpc
     const vpc = new Vpc(this, "WatanabeVpc", {
@@ -108,26 +93,26 @@ export class CdkStack extends Stack {
     fargateSg.addIngressRule(albSg, Port.tcp(80));
 
     // Security Group for DB
-    // const dbSg = new SecurityGroup(this, "WatanabeDbSg", {
-    //   vpc: vpc,
-    //   securityGroupName: "WatanabeDbSg",
-    // });
-    // dbSg.addIngressRule(fargateSg, Port.tcp(5432));
+    const dbSg = new SecurityGroup(this, "WatanabeDbSg", {
+      vpc: vpc,
+      securityGroupName: "WatanabeDbSg",
+    });
+    dbSg.addIngressRule(fargateSg, Port.tcp(5432));
 
-    // // DB
-    // const dbCredentials = Credentials.fromGeneratedSecret("postgres");
-    // const db = new DatabaseInstance(this, "WatanabeDb", {
-    //   vpc,
-    //   vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
-    //   engine: DatabaseInstanceEngine.postgres({ version: PostgresEngineVersion.VER_17 }),
-    //   multiAz: false,
-    //   securityGroups: [dbSg],
-    //   credentials: dbCredentials,
-    //   publiclyAccessible: false,
-    //   removalPolicy: RemovalPolicy.DESTROY,
-    //   deletionProtection: false,
-    //   databaseName: "watanabe-db",
-    // });
+    // DB
+    const dbCredentials = Credentials.fromPassword("postgres", SecretValue.unsafePlainText(config.dbPassword));
+    const db = new DatabaseInstance(this, "WatanabeDb", {
+      vpc,
+      vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
+      engine: DatabaseInstanceEngine.postgres({ version: PostgresEngineVersion.VER_17 }),
+      multiAz: false,
+      securityGroups: [dbSg],
+      credentials: dbCredentials,
+      publiclyAccessible: false,
+      removalPolicy: RemovalPolicy.DESTROY,
+      deletionProtection: false,
+      databaseName: "watanabeDb",
+    });
 
     // ALB
     const alb = new ApplicationLoadBalancer(this, "WatanabeAlb", {
@@ -164,7 +149,7 @@ export class CdkStack extends Stack {
       protocol: ApplicationProtocol.HTTPS,
       certificates: [
         {
-          certificateArn: this.config.ACMCertificateArn,
+          certificateArn: config.ACMCertificateArn,
         },
       ],
       defaultTargetGroups: [targetGroup],
@@ -173,9 +158,11 @@ export class CdkStack extends Stack {
     // ECR
     const appRepository = new Repository(this, "WatanabeAppRepository", {
       repositoryName: "watanabe-app",
+      removalPolicy: RemovalPolicy.DESTROY,
     });
     const webRepository = new Repository(this, "WatanabeWebRepository", {
       repositoryName: "watanabe-web",
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     // Container Image from ECR
@@ -221,8 +208,14 @@ export class CdkStack extends Stack {
         logGroup: logGroup,
       }),
       environment: {
-        APP_KEY: this.config.appKey,
-        APP_ENV: this.config.appEnv,
+        APP_KEY: config.appKey,
+        APP_ENV: config.appEnv,
+        APP_URL: config.appUrl,
+        DB_PORT: db.dbInstanceEndpointPort.toString(),
+        DB_HOST: db.dbInstanceEndpointAddress,
+        DB_DATABASE: "watanabe-db",
+        DB_USERNAME: "postgres",
+        DB_PASSWORD: config.dbPassword,
       }
     });
 

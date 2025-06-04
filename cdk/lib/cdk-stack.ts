@@ -203,7 +203,6 @@ export class CdkStack extends Stack {
     taskDefinition.addContainer("watanabeApp", {
       image: appImage,
       containerName: "php-fpm",
-      portMappings: [{ containerPort: 9000 }],
       logging: LogDrivers.awsLogs({
         streamPrefix: "php-fpm",
         logGroup: logGroup,
@@ -214,7 +213,8 @@ export class CdkStack extends Stack {
         APP_URL: config.appUrl,
         DB_PORT: db.dbInstanceEndpointPort.toString(),
         DB_HOST: db.dbInstanceEndpointAddress,
-        DB_DATABASE: "watanabe-db",
+        DB_DATABASE: "watanabeDb",
+        DB_CONNECTION: "pgsql",
         DB_USERNAME: "postgres",
         DB_PASSWORD: config.dbPassword,
       }

@@ -193,7 +193,7 @@ export class CdkStack extends Stack {
     );
     taskDefinition.addContainer("watanabeWeb", {
       image: webImage,
-      containerName: "watanabe-web",
+      containerName: "web",
       portMappings: [{ containerPort: 80 }],
       logging: LogDrivers.awsLogs({
         streamPrefix: "web",
@@ -202,9 +202,9 @@ export class CdkStack extends Stack {
     });
     taskDefinition.addContainer("watanabeApp", {
       image: appImage,
-      containerName: "watanabe-app",
+      containerName: "php-fpm",
       logging: LogDrivers.awsLogs({
-        streamPrefix: "app",
+        streamPrefix: "php-fpm",
         logGroup: logGroup,
       }),
       environment: {

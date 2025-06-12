@@ -38,6 +38,20 @@ export class CdkStack extends Stack {
 
     const config = getConfig();
 
+    // ECR
+    const appRepository = new Repository(this, "WatanabeAppRepository", {
+      repositoryName: "watanabe-app",
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    const webRepository = new Repository(this, "WatanabeWebRepository", {
+      repositoryName: "watanabe-web",
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    // Container Image from ECR
+    const appImage = ContainerImage.fromEcrRepository(appRepository);
+    const webImage = ContainerImage.fromEcrRepository(webRepository);
+
     // Vpc
     const vpc = new Vpc(this, "WatanabeVpc", {
       vpcName: "WatanabeVpc",
@@ -154,20 +168,6 @@ export class CdkStack extends Stack {
       ],
       defaultTargetGroups: [targetGroup],
     });
-
-    // ECR
-    const appRepository = new Repository(this, "WatanabeAppRepository", {
-      repositoryName: "watanabe-app",
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-    const webRepository = new Repository(this, "WatanabeWebRepository", {
-      repositoryName: "watanabe-web",
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-
-    // Container Image from ECR
-    const appImage = ContainerImage.fromEcrRepository(appRepository);
-    const webImage = ContainerImage.fromEcrRepository(webRepository);
 
     // Cluster
     const cluster = new Cluster(this, "WatanabeCluster", {

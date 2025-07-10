@@ -107,5 +107,5 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
           codedeploy-appspec: appspec.yaml
-          codedeploy-application: watanabe-codedeploy-app
-          codedeploy-deployment-group: watanabe-codedeploy-group
+          codedeploy-application: Watanabe-code-deploy-app
+          codedeploy-deployment-group: Watanabe-codedeploy-group

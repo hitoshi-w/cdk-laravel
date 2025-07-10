@@ -61,17 +61,17 @@ jobs:
       web_image: ${{ steps.push-images.outputs.web_image }}
 
   # DEPLOY
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ env.TASK_DEFINITION }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-          force-new-deployment: true
-          container-name: ${{ env.ECR_APP }}
-          image-uri: ${{ needs.build.outputs.app_image }}
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     - name: Deploy to ECS
+  #       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+  #       with:
+  #         task-definition: ${{ env.TASK_DEFINITION }}
+  #         service: ${{ env.ECS_SERVICE }}
+  #         cluster: ${{ env.ECS_CLUSTER }}
+  #         wait-for-service-stability: true
+  #         force-new-deployment: true
+  #         container-name: ${{ env.ECR_APP }}
+  #         image-uri: ${{ needs.build.outputs.app_image }}

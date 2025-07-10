@@ -91,7 +91,6 @@ jobs:
   #         container-name: ${{ env.ECR_APP }}
   #         image: ${{ needs.build.outputs.app_image }}
 
-      
   #     - name: Update web image in task definition
   #       id: render-web
   #       uses: aws-actions/amazon-ecs-render-task-definition@v1

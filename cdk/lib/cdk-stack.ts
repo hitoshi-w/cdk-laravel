@@ -1,4 +1,10 @@
-import { Stack, StackProps, RemovalPolicy, Duration, SecretValue } from "aws-cdk-lib";
+import {
+  Stack,
+  StackProps,
+  RemovalPolicy,
+  Duration,
+  SecretValue,
+} from "aws-cdk-lib";
 import dotenv from "dotenv";
 import {
   Vpc,
@@ -28,7 +34,13 @@ import { Construct } from "constructs";
 import { getConfig } from "../config";
 import { Repository } from "aws-cdk-lib/aws-ecr";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
-import { Credentials, DatabaseInstance, DatabaseInstanceEngine, PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
+import {
+  Credentials,
+  DatabaseInstance,
+  DatabaseInstanceEngine,
+  PostgresEngineVersion,
+} from "aws-cdk-lib/aws-rds";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 dotenv.config();
 
@@ -43,9 +55,25 @@ export class CdkStack extends Stack {
 
     const config = getConfig();
 
+    // image tag from SSM Parameter Store
+    const appImageTag = StringParameter.valueForStringParameter(
+      this,
+      "watanabe-app"
+    );
+    const webImageTag = StringParameter.valueForStringParameter(
+      this,
+      "watanabe-web"
+    );
+
     // Container Image from ECR
-    const appImage = ContainerImage.fromEcrRepository(props.appRepository);
-    const webImage = ContainerImage.fromEcrRepository(props.webRepository);
+    const appImage = ContainerImage.fromEcrRepository(
+      props.appRepository,
+      appImageTag
+    );
+    const webImage = ContainerImage.fromEcrRepository(
+      props.webRepository,
+      webImageTag
+    );
 
     // Vpc
     const vpc = new Vpc(this, "WatanabeVpc", {
@@ -109,11 +137,16 @@ export class CdkStack extends Stack {
     dbSg.addIngressRule(fargateSg, Port.tcp(5432));
 
     // DB
-    const dbCredentials = Credentials.fromPassword("postgres", SecretValue.unsafePlainText(config.dbPassword));
+    const dbCredentials = Credentials.fromPassword(
+      "postgres",
+      SecretValue.unsafePlainText(config.dbPassword)
+    );
     const db = new DatabaseInstance(this, "WatanabeDb", {
       vpc,
       vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
-      engine: DatabaseInstanceEngine.postgres({ version: PostgresEngineVersion.VER_17 }),
+      engine: DatabaseInstanceEngine.postgres({
+        version: PostgresEngineVersion.VER_17,
+      }),
       multiAz: false,
       securityGroups: [dbSg],
       credentials: dbCredentials,
@@ -213,7 +246,7 @@ export class CdkStack extends Stack {
         DB_CONNECTION: "pgsql",
         DB_USERNAME: "postgres",
         DB_PASSWORD: config.dbPassword,
-      }
+      },
     });
 
     // Fargate Service

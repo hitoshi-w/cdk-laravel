@@ -5,8 +5,8 @@ on:
       - main
 env:
   AWS_REGION: ap-northeast-1
-  ECS_CLUSTER: watanabe-cluster
-  ECS_SERVICE: watanabe-services
+  ECS_CLUSTER: WatanabeCluster
+  ECS_SERVICE: WatanabeFargateService
   ECR_APP: watanabe-app
   ECR_WEB: watanabe-web
   TASK_DEFINITION: watanabe-task-definition

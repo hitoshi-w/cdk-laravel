@@ -67,42 +67,45 @@ jobs:
       web_image: ${{ steps.push-images.outputs.web_image }}
 
   # DEPLOY
-  # deploy:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
-  #     - name: Download task definition
-  #       run: |
-  #         aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} > task_definition.json
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} > task_definition.json
 
-  #     - name: Update app image in task definition
-  #       id: render-app
-  #       uses: aws-actions/amazon-ecs-render-task-definition@v1
-  #       with:
-  #         task-definition: task-definition.json
-  #         container-name: ${{ env.ECR_APP }}
-  #         image: ${{ needs.build.outputs.app_image }}
+      - name: Update app image in task definition
+        id: render-app
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.ECR_APP }}
+          image: ${{ needs.build.outputs.app_image }}
 
-  #     - name: Update web image in task definition
-  #       id: render-web
-  #       uses: aws-actions/amazon-ecs-render-task-definition@v1
-  #       with:
-  #         task-definition: ${{ steps.render-app.outputs.task-definition }}
-  #         container-name: ${{ env.ECR_WEB }}
-  #         image: ${{ needs.build.outputs.web_image }}
+      - name: Update web image in task definition
+        id: render-web
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-app.outputs.task-definition }}
+          container-name: ${{ env.ECR_WEB }}
+          image: ${{ needs.build.outputs.web_image }}
 
-  #     - name: Deploy Amazon ECS task definition
-  #       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-  #       with:
-  #         task-definition: ${{ steps.render-web.outputs.task-definition }}
-  #         service: ${{ env.ECS_SERVICE }}
-  #         cluster: ${{ env.ECS_CLUSTER }}
-  #         wait-for-service-stability: true
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-web.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          codedeploy-appspec: appspec.yaml
+          codedeploy-application: watanabe-codedeploy-app
+          codedeploy-deployment-group: watanabe-codedeploy-group

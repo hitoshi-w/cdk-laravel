@@ -19,6 +19,7 @@ import {
 import {
   Cluster,
   ContainerImage,
+  DeploymentControllerType,
   FargatePlatformVersion,
   FargateService,
   FargateTaskDefinition,
@@ -41,6 +42,7 @@ import {
   PostgresEngineVersion,
 } from "aws-cdk-lib/aws-rds";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 
 dotenv.config();
 
@@ -168,9 +170,26 @@ export class CdkStack extends Stack {
     });
 
     // Target Group
-    const targetGroup = new ApplicationTargetGroup(
+    const blueTargetGroup = new ApplicationTargetGroup(
       this,
-      "WatanabeTargetGroup",
+      "WatanabeBlueTargetGroup",
+      {
+        vpc: vpc,
+        targetType: TargetType.IP,
+        port: 80,
+        protocol: ApplicationProtocol.HTTP,
+        healthCheck: {
+          healthyHttpCodes: "200",
+          path: "/",
+          interval: Duration.seconds(30),
+          timeout: Duration.seconds(5),
+        },
+      }
+    );
+
+    const greenTargetGroup = new ApplicationTargetGroup(
+      this,
+      "WatanabeGreenTargetGroup",
       {
         vpc: vpc,
         targetType: TargetType.IP,
@@ -186,7 +205,7 @@ export class CdkStack extends Stack {
     );
 
     // Listener
-    alb.addListener("HttpsListener", {
+    const listener = alb.addListener("HttpsListener", {
       port: 443,
       protocol: ApplicationProtocol.HTTPS,
       certificates: [
@@ -194,7 +213,7 @@ export class CdkStack extends Stack {
           certificateArn: config.ACMCertificateArn,
         },
       ],
-      defaultTargetGroups: [targetGroup],
+      defaultTargetGroups: [blueTargetGroup],
     });
 
     // Cluster
@@ -261,9 +280,38 @@ export class CdkStack extends Stack {
       vpcSubnets: {
         subnetType: SubnetType.PRIVATE_ISOLATED,
       },
+      deploymentController: {
+        type: DeploymentControllerType.CODE_DEPLOY,
+      },
     });
 
     // Attach Target Group to Fargate Service
-    fargateService.attachToApplicationTargetGroup(targetGroup);
+    fargateService.attachToApplicationTargetGroup(blueTargetGroup);
+
+    // CodeDeploy
+    const codeDeployApp = new codedeploy.EcsApplication(
+      this,
+      "WatanabeCodeDeployApp",
+      {
+        applicationName: "Watanabe-code-deploy-app",
+      }
+    );
+
+    new codedeploy.EcsDeploymentGroup(this, "WatanabeCodeDeployGroup", {
+      application: codeDeployApp,
+      deploymentGroupName: "Watanabe-codedeploy-group",
+      service: fargateService,
+      blueGreenDeploymentConfig: {
+        blueTargetGroup: blueTargetGroup,
+        greenTargetGroup: greenTargetGroup,
+        listener: listener,
+      },
+      deploymentConfig:
+        codedeploy.EcsDeploymentConfig.CANARY_10PERCENT_5MINUTES,
+      autoRollback: {
+        failedDeployment: true,
+        stoppedDeployment: true,
+      },
+    });
   }
 }

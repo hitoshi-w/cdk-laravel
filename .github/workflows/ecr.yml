@@ -9,6 +9,7 @@ env:
   ECS_SERVICE: watanabe-services
   ECR_APP: watanabe-app
   ECR_WEB: watanabe-web
+  TASK_DEFINITION: watanabe-task-definition
 
 permissions:
   id-token: write 
@@ -43,10 +44,34 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Push images to Amazon ECR
+        id: push-images
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker image tag temp_app_image:latest $ECR_REGISTRY/$ECR_APP:latest
-          docker image tag temp_web_image:latest $ECR_REGISTRY/$ECR_WEB:latest
-          docker image push $ECR_REGISTRY/$ECR_APP:latest
-          docker image push $ECR_REGISTRY/$ECR_WEB:latest
+          docker image tag temp_app_image:latest $ECR_REGISTRY/$ECR_APP:$IMAGE_TAG
+          docker image tag temp_web_image:latest $ECR_REGISTRY/$ECR_WEB:$IMAGE_TAG
+          docker image push $ECR_REGISTRY/$ECR_APP:$IMAGE_TAG
+          docker image push $ECR_REGISTRY/$ECR_WEB:$IMAGE_TAG
+          echo "app_image=$ECR_REGISTRY/$ECR_APP:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "web_image=$ECR_REGISTRY/$ECR_WEB:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    outputs:
+      app_image: ${{ steps.push-images.outputs.app_image }}
+      web_image: ${{ steps.push-images.outputs.web_image }}
+
+  # DEPLOY
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ env.TASK_DEFINITION }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          force-new-deployment: true
+          container-name: ${{ env.ECR_APP }}
+          image-uri: ${{ needs.build.outputs.app_image }}

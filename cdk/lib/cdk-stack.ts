@@ -32,25 +32,20 @@ import { Credentials, DatabaseInstance, DatabaseInstanceEngine, PostgresEngineVe
 
 dotenv.config();
 
+interface CdkStackProps extends StackProps {
+  appRepository: Repository;
+  webRepository: Repository;
+}
+
 export class CdkStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: CdkStackProps) {
     super(scope, id, props);
 
     const config = getConfig();
 
-    // ECR
-    const appRepository = new Repository(this, "WatanabeAppRepository", {
-      repositoryName: "watanabe-app",
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-    const webRepository = new Repository(this, "WatanabeWebRepository", {
-      repositoryName: "watanabe-web",
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-
     // Container Image from ECR
-    const appImage = ContainerImage.fromEcrRepository(appRepository);
-    const webImage = ContainerImage.fromEcrRepository(webRepository);
+    const appImage = ContainerImage.fromEcrRepository(props.appRepository);
+    const webImage = ContainerImage.fromEcrRepository(props.webRepository);
 
     // Vpc
     const vpc = new Vpc(this, "WatanabeVpc", {

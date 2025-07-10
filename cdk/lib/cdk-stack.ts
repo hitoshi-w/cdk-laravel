@@ -184,22 +184,23 @@ export class CdkStack extends Stack {
       {
         cpu: 512,
         memoryLimitMiB: 1024,
+        family: "watanabe-task-definition",
       }
     );
     taskDefinition.addContainer("watanabeWeb", {
       image: webImage,
-      containerName: "web",
+      containerName: "watanabe-web",
       portMappings: [{ containerPort: 80 }],
       logging: LogDrivers.awsLogs({
-        streamPrefix: "web",
+        streamPrefix: "watanabe-web",
         logGroup: logGroup,
       }),
     });
     taskDefinition.addContainer("watanabeApp", {
       image: appImage,
-      containerName: "php-fpm",
+      containerName: "watanabe-app",
       logging: LogDrivers.awsLogs({
-        streamPrefix: "php-fpm",
+        streamPrefix: "watanabe-app",
         logGroup: logGroup,
       }),
       environment: {
